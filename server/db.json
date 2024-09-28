@@ -1,0 +1,16 @@
+{
+    "Table1": {
+        "fields": [
+            "Name",
+            "Surname",
+            "Age"
+        ],
+        "records": []
+    },
+    "Table2": {
+        "fields": [
+            "Nothing?"
+        ],
+        "records": []
+    }
+}
