@@ -200,13 +200,16 @@ class MainWindow(QMainWindow):
     def add_record(self):
         """Открыть диалог для отображения записей и управления ими."""
         selected_item = self.table_list.currentItem()
-        if selected_item:
-            table_name = selected_item.text()
-            fields = self.client.get_table_fields(table_name)  # Получаем поля
-            records = self.client.get_records(table_name)  # Получаем записи для таблицы
+        try:
+            if selected_item:
+                table_name = selected_item.text()
+                fields = self.client.get_table_fields(table_name)  # Получаем поля
+                records = self.client.get_records(table_name)  # Получаем записи для таблицы
 
-            dialog = RecordDialog(table_name, fields, records, self)
-            dialog.exec()  # Открыть диалог
+                dialog = RecordDialog(table_name, fields, records, self)
+                dialog.exec()  # Открыть диалог
+        except:
+            QMessageBox.information(self, ":c", "Щось пішло не так")
 
 
     def add_table(self):
