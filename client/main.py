@@ -6,6 +6,75 @@ from PyQt6.QtWidgets import (
 from rest_client import RestClient
 import sys
 
+class RecordDialog(QDialog):
+    def __init__(self, table_name, fields, records, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle(f"Записи для {table_name}")
+        self.layout = QVBoxLayout(self)
+
+        self.records_list = QListWidget(self)
+        self.layout.addWidget(self.records_list)
+        self.update_records(records)
+
+        # Кнопка для добавления записи
+        self.add_record_button = QPushButton("Добавить запись")
+        self.add_record_button.clicked.connect(lambda: self.add_record(fields))
+        self.layout.addWidget(self.add_record_button)
+
+        # Кнопка для удаления записи
+        self.remove_record_button = QPushButton("Удалить запись")
+        self.remove_record_button.clicked.connect(self.remove_record)
+        self.layout.addWidget(self.remove_record_button)
+
+        # Кнопка для обновления записей
+        self.refresh_records_button = QPushButton("Обновить записи")
+        self.refresh_records_button.clicked.connect(self.refresh_records)
+        self.layout.addWidget(self.refresh_records_button)
+
+    def update_records(self, records):
+        """Обновить список записей."""
+        self.records_list.clear()
+        for record in records:
+            # Форматируем запись для более читабельного отображения
+            record_display = ", ".join(f"{key}: {value}" for key, value in record.items())
+            self.records_list.addItem(record_display)
+
+    def add_record(self, fields):
+        """Добавить новую запись через диалог."""
+        record_data = {}
+        for field in fields:
+            value, ok = QInputDialog.getText(self, f"Введите значение для {field[0]}:", field[0])
+            if ok:
+                record_data[field[0]] = value
+            else:
+                return  # Если пользователь нажал Cancel, не добавляем запись
+
+        # Отправка запроса на добавление записи на сервер
+        self.parent().client.add_record(self.parent().table_list.currentItem().text(), record_data)
+
+        # Обновление списка записей после добавления
+        self.update_records(self.parent().client.get_records(self.parent().table_list.currentItem().text()))
+
+    def remove_record(self):
+        """Удалить выбранную запись из списка."""
+        selected_item = self.records_list.currentItem()
+        if selected_item:
+            row = self.records_list.row(selected_item)
+            # Получаем текст записи для удаления
+            record_text = selected_item.text()
+            record = {key: value for key, value in (item.split(": ") for item in record_text.split(", "))}
+
+            # Логика для удаления записи на сервере
+            self.parent().client.delete_record(self.parent().table_list.currentItem().text(), record)
+            self.update_records(self.parent().client.get_records(self.parent().table_list.currentItem().text()))  # Обновляем записи
+
+    def refresh_records(self):
+        """Обновить записи с сервера."""
+        table_name = self.parent().table_list.currentItem().text()
+        records = self.parent().client.get_records(table_name)
+        self.update_records(records)
+
+
 class FieldDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -90,6 +159,9 @@ class MainWindow(QMainWindow):
         self.layout.addWidget(self.table_list)
         self.load_tables()
 
+        # Обработчик двойного клика для добавления записи
+        self.table_list.itemDoubleClicked.connect(self.add_record)
+
         # Кнопки
         buttons_layout = QHBoxLayout()
         
@@ -124,6 +196,18 @@ class MainWindow(QMainWindow):
                 self.table_list.addItem(table)
         else:
             self.table_list.addItem("Нет таблиц.")
+
+    def add_record(self):
+        """Открыть диалог для отображения записей и управления ими."""
+        selected_item = self.table_list.currentItem()
+        if selected_item:
+            table_name = selected_item.text()
+            fields = self.client.get_table_fields(table_name)  # Получаем поля
+            records = self.client.get_records(table_name)  # Получаем записи для таблицы
+
+            dialog = RecordDialog(table_name, fields, records, self)
+            dialog.exec()  # Открыть диалог
+
 
     def add_table(self):
         """Добавить новую таблицу."""

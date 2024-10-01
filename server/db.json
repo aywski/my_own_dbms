@@ -1,16 +1,60 @@
 {
     "Table1": {
         "fields": [
-            "Name",
-            "Surname",
-            "Age"
+            [
+                "Name",
+                "TEXT"
+            ],
+            [
+                "Age",
+                "INTEGER"
+            ],
+            [
+                "Price",
+                "REAL"
+            ],
+            [
+                "Gender",
+                "CHAR"
+            ]
         ],
-        "records": []
-    },
-    "Table2": {
-        "fields": [
-            "Nothing?"
-        ],
-        "records": []
+        "records": [
+            {
+                "Name": "Victor",
+                "Age": 26,
+                "Price": "199.90",
+                "Gender": "M"
+            },
+            {
+                "Name": "ads",
+                "Age": 123,
+                "Price": "123.12",
+                "Gender": "s"
+            },
+            {
+                "Name": "\u0444\u0432\u044b",
+                "Age": 123,
+                "Price": "123",
+                "Gender": "\u0432"
+            },
+            {
+                "Name": "\u0444\u044b\u0432\u0444\u044b\u0432",
+                "Age": 123,
+                "Price": "123",
+                "Gender": "\u0444\u044b\u0432"
+            },
+            {
+                "Name": "\u0444\u044b\u0432",
+                "Age": 123,
+                "Price": "\u0444\u044b\u0432",
+                "Gender": "\u0432"
+            },
+            {
+                "Name": "\u0444\u044b\u0432",
+                "Age": "123",
+                "Price": "123",
+                "Gender": "123"
+            }
+        ]
     }
 }

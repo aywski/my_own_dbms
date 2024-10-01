@@ -2,6 +2,7 @@ import json
 from flask import Flask, request, jsonify
 
 app = Flask(__name__)
+app.json.sort_keys = False
 
 # Чтение базы данных из файла
 def read_db():
@@ -53,6 +54,66 @@ def delete_table(table_name):
     del db[table_name]
     write_db(db)
     return jsonify({"success": f"Таблица {table_name} удалена"}), 200
+
+@app.route('/table_fields/<table_name>', methods=['GET'])
+def get_table_fields(table_name):
+    db = read_db()
+    if table_name in db:
+        return jsonify(db[table_name]["fields"])
+    else:
+        return jsonify({"error": "Таблица не найдена"}), 404
+
+# Добавить запись в таблицу
+@app.route('/add_record/<table_name>', methods=['POST'])
+def add_record(table_name):
+    data = request.json
+    print(f"Получен запрос на добавление записи: {data}")  # Лог для отладки
+
+    db = read_db()
+    if table_name not in db:
+        return jsonify({"error": "Таблица не найдена"}), 404
+
+    fields = db[table_name]["fields"]
+    record = {}
+
+    # Валидация записи по типам данных
+    for field_name, field_type in fields:
+        value = data.get(field_name)
+        if field_type == "INTEGER":
+            try:
+                value = int(value)
+            except ValueError:
+                return jsonify({"error": f"Некорректное значение для {field_name}, ожидался INTEGER"}), 400
+        record[field_name] = value
+
+    db[table_name]["records"].append(record)
+    write_db(db)
+    return jsonify({"success": f"Запись добавлена в таблицу {table_name}"}), 200
+
+@app.route('/records/<table_name>', methods=['GET'])
+def get_records(table_name):
+    db = read_db()
+    if table_name in db:
+        return jsonify(db[table_name]["records"])
+    else:
+        return jsonify({"error": "Таблица не найдена"}), 404
+
+@app.route('/delete_record/<table_name>', methods=['DELETE'])
+def delete_record(table_name):
+    data = request.json
+    db = read_db()
+    if table_name not in db:
+        return jsonify({"error": "Таблица не найдена"}), 404
+
+    records = db[table_name]["records"]
+    # Найти и удалить запись (можно использовать более сложный метод поиска)
+    if data in records:
+        records.remove(data)
+        write_db(db)
+        return jsonify({"success": "Запись удалена"}), 200
+    else:
+        return jsonify({"error": "Запись не найдена"}), 404
+
 
 if __name__ == '__main__':
     app.run(debug=True)
