@@ -1,18 +1,85 @@
 from PyQt6.QtWidgets import (
-    QApplication, QMainWindow, QVBoxLayout, QWidget, QPushButton, 
-    QLineEdit, QLabel, QListWidget, QHBoxLayout, QInputDialog, QMessageBox
+    QApplication, QMainWindow, QVBoxLayout, QWidget, QPushButton,
+    QLineEdit, QLabel, QListWidget, QHBoxLayout, QInputDialog, QMessageBox,
+    QDialog, QFormLayout, QComboBox
 )
 from rest_client import RestClient
 import sys
+
+class FieldDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Добавить поле")
+        self.layout = QVBoxLayout(self)
+
+        self.fields_list = QListWidget(self)
+        self.layout.addWidget(QLabel("Список полей:"))
+        self.layout.addWidget(self.fields_list)
+
+        form_layout = QFormLayout()
+        self.name_input = QLineEdit(self)
+        form_layout.addRow("Имя поля:", self.name_input)
+
+        self.type_combo = QComboBox(self)
+        self.type_combo.addItems(["INTEGER", "TEXT", "REAL", "CHAR"])
+        form_layout.addRow("Тип данных:", self.type_combo)
+
+        self.layout.addLayout(form_layout)
+
+        # Кнопки для добавления и удаления поля
+        buttons_layout = QHBoxLayout()
+        self.add_field_button = QPushButton("Добавить поле")
+        self.add_field_button.clicked.connect(self.add_field)
+        buttons_layout.addWidget(self.add_field_button)
+
+        self.remove_field_button = QPushButton("Удалить поле")
+        self.remove_field_button.clicked.connect(self.remove_field)
+        buttons_layout.addWidget(self.remove_field_button)
+
+        self.layout.addLayout(buttons_layout)
+
+        # Кнопки OK и Отмена
+        action_buttons_layout = QHBoxLayout()
+        self.ok_button = QPushButton("OK", self)
+        self.ok_button.clicked.connect(self.accept)
+        self.cancel_button = QPushButton("Отмена", self)
+        self.cancel_button.clicked.connect(self.reject)
+        action_buttons_layout.addWidget(self.ok_button)
+        action_buttons_layout.addWidget(self.cancel_button)
+        self.layout.addLayout(action_buttons_layout)
+
+        self.fields = []
+
+    def add_field(self):
+        """Добавить поле в список."""
+        field_name = self.name_input.text()
+        field_type = self.type_combo.currentText()
+
+        if field_name:
+            self.fields.append((field_name, field_type))
+            self.fields_list.addItem(f"{field_name} ({field_type})")
+
+            # Очищаем поля ввода для нового поля
+            self.name_input.clear()
+            self.type_combo.setCurrentIndex(0)
+
+    def remove_field(self):
+        """Удалить выбранное поле из списка."""
+        selected_item = self.fields_list.currentItem()
+        if selected_item:
+            row = self.fields_list.row(selected_item)
+            self.fields_list.takeItem(row)
+            del self.fields[row]
+
+    def get_fields(self):
+        return self.fields
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Database Manager")
         self.setGeometry(100, 100, 400, 300)
-
         self.client = RestClient()
-
         self.layout = QVBoxLayout()
         self.init_ui()
 
@@ -25,7 +92,7 @@ class MainWindow(QMainWindow):
 
         # Кнопки
         buttons_layout = QHBoxLayout()
-
+        
         # Добавление таблицы
         self.add_table_button = QPushButton("Добавить таблицу")
         self.add_table_button.clicked.connect(self.add_table)
@@ -62,15 +129,17 @@ class MainWindow(QMainWindow):
         """Добавить новую таблицу."""
         table_name, ok = QInputDialog.getText(self, "Добавить таблицу", "Введите имя таблицы:")
         if ok and table_name:
-            fields, ok = QInputDialog.getText(self, "Добавить поля", "Введите поля через запятую:")
-            if ok and fields:
-                fields_list = [field.strip() for field in fields.split(",")]
-                response = self.client.create_table(table_name, fields_list)
-                if response:
-                    QMessageBox.information(self, "Успех", f"Таблица {table_name} создана.")
-                else:
-                    QMessageBox.warning(self, "Ошибка", "Не удалось создать таблицу.")
-                self.load_tables()
+            dialog = FieldDialog(self)
+            if dialog.exec() == QDialog.DialogCode.Accepted:
+                fields = dialog.get_fields()
+                
+                if fields:
+                    response = self.client.create_table(table_name, fields)
+                    if response:
+                        QMessageBox.information(self, "Успех", f"Таблица {table_name} создана.")
+                    else:
+                        QMessageBox.warning(self, "Ошибка", "Не удалось создать таблицу.")
+                    self.load_tables()
 
     def delete_table(self):
         """Удалить выбранную таблицу."""
