@@ -70,7 +70,7 @@ def add_record(table_name):
         return jsonify({"error": "Таблица не найдена"}), 404
 
     fields = db[table_name]["fields"]
-    record = {}
+    record = {"id": len(db[table_name]["records"]) + 1}  # Генерация ID
 
     # record validating
     for field_name, field_type in fields:
@@ -83,7 +83,7 @@ def add_record(table_name):
 
     db[table_name]["records"].append(record)
     write_db(db)
-    return jsonify({"success": f"Record is added {table_name}"}), 200
+    return jsonify({"success": f"Запись добавлена в {table_name}", "record": record}), 200
 
 @app.route('/records/<table_name>', methods=['GET'])
 def get_records(table_name):
@@ -91,23 +91,23 @@ def get_records(table_name):
     if table_name in db:
         return jsonify(db[table_name]["records"])
     else:
-        return jsonify({"error": "Table not found"}), 404
+        return jsonify({"error": "Таблица не найдена"}), 404
 
-@app.route('/delete_record/<table_name>', methods=['DELETE'])
-def delete_record(table_name):
-    data = request.json
+@app.route('/delete_record/<table_name>/<int:record_id>', methods=['DELETE'])
+def delete_record(table_name, record_id):
     db = read_db()
     if table_name not in db:
-        return jsonify({"error": "Table not found"}), 404
+        return jsonify({"error": "Таблица не найдена"}), 404
 
     records = db[table_name]["records"]
-    if data in records:
-        records.remove(data)
+    record_to_delete = next((record for record in records if record['id'] == record_id), None)
+
+    if record_to_delete:
+        records.remove(record_to_delete)
         write_db(db)
         return jsonify({"success": "Запись удалена"}), 200
     else:
         return jsonify({"error": "Запись не найдена"}), 404
-
 
 if __name__ == '__main__':
     app.run(debug=True)

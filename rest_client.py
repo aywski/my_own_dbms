@@ -29,7 +29,7 @@ class RestClient:
         response = requests.get(f"{self.base_url}/records/{table_name}")
         return response.json() if response.status_code == 200 else None
     
-    def delete_record(self, table_name, record):
-        # Здесь следует реализовать логику для удаления записи
-        response = requests.delete(f"{self.base_url}/delete_record/{table_name}", json=record)
+    def delete_record(self, table_name, record_id):
+        """Удалить запись по ID."""
+        response = requests.delete(f"{self.base_url}/delete_record/{table_name}/{record_id}")
         return response.json() if response.status_code == 200 else None

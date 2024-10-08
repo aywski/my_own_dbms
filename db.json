@@ -1,1 +1,28 @@
-{}
+{
+    "asd": {
+        "fields": [
+            [
+                "intt",
+                "INTEGER"
+            ],
+            [
+                "real",
+                "REAL"
+            ]
+        ],
+        "records": []
+    },
+    "test": {
+        "fields": [
+            [
+                "charinvl",
+                "CHARINVL"
+            ],
+            [
+                "charinvls",
+                "string(CHARINVL)"
+            ]
+        ],
+        "records": []
+    }
+}

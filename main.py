@@ -5,6 +5,7 @@ from PyQt6.QtWidgets import (
 )
 from rest_client import RestClient
 import sys
+import re
 
 class RecordDialog(QDialog):
     def __init__(self, table_name, fields, records, parent=None):
@@ -35,19 +36,37 @@ class RecordDialog(QDialog):
         """Обновить список записей."""
         self.records_list.clear()
         for record in records:
-            # Форматируем запись для более читабельного отображения
-            record_display = ", ".join(f"{key}: {value}" for key, value in record.items())
+            record_display = f"ID: {record['id']}, " + ", ".join(f"{key}: {value}" for key, value in record.items() if key != 'id')
             self.records_list.addItem(record_display)
 
     def add_record(self, fields):
         """Добавить новую запись через диалог."""
         record_data = {}
         for field in fields:
-            value, ok = QInputDialog.getText(self, f"Введите значение для {field[0]}:", field[0])
-            if ok:
-                record_data[field[0]] = value
+            field_name, field_type = field[0], field[1]
+
+            if field_type == "CHARINVL" or field_type == "string(CHARINVL)":
+                # Для этих типов данных отображаем два поля для ввода диапазона
+                start_value, ok1 = QInputDialog.getText(self, f"Введите начало диапазона для {field_name}:", field_name)
+                if not ok1:
+                    return
+
+                end_value, ok2 = QInputDialog.getText(self, f"Введите конец диапазона для {field_name}:", field_name)
+                if not ok2:
+                    return
+
+                if field_type == "CHARINVL":
+                    # Формат для CHARINVL: (B - D)
+                    record_data[field_name] = f"({start_value} - {end_value})"
+                elif field_type == "string(CHARINVL)":
+                    # Формат для string(CHARINVL): (B, C, D)
+                    record_data[field_name] = f"({', '.join(chr(c) for c in range(ord(start_value), ord(end_value) + 1))})"
             else:
-                return  # Если пользователь нажал Cancel, не добавляем запись
+                value, ok = QInputDialog.getText(self, f"Введите значение для {field_name}:", field_name)
+                if ok:
+                    record_data[field_name] = value
+                else:
+                    return  # Если пользователь нажал Cancel, не добавляем запись
 
         # Отправка запроса на добавление записи на сервер
         self.parent().client.add_record(self.parent().table_list.currentItem().text(), record_data)
@@ -59,21 +78,25 @@ class RecordDialog(QDialog):
         """Удалить выбранную запись из списка."""
         selected_item = self.records_list.currentItem()
         if selected_item:
-            row = self.records_list.row(selected_item)
-            # Получаем текст записи для удаления
             record_text = selected_item.text()
-            record = {key: value for key, value in (item.split(": ") for item in record_text.split(", "))}
 
-            # Логика для удаления записи на сервере
-            self.parent().client.delete_record(self.parent().table_list.currentItem().text(), record)
-            self.update_records(self.parent().client.get_records(self.parent().table_list.currentItem().text()))  # Обновляем записи
+            # Извлекаем ID записи
+            pattern = r"ID: (\d+)"
+            match = re.search(pattern, record_text)
+            if match:
+                record_id = int(match.group(1))
+
+                # Логика для удаления записи на сервере
+                self.parent().client.delete_record(self.parent().table_list.currentItem().text(), record_id)
+                self.update_records(self.parent().client.get_records(self.parent().table_list.currentItem().text()))  # Обновляем записи
+            else:
+                QMessageBox.warning(self, "Ошибка", "Не удалось извлечь ID записи.")
 
     def refresh_records(self):
         """Обновить записи с сервера."""
         table_name = self.parent().table_list.currentItem().text()
         records = self.parent().client.get_records(table_name)
         self.update_records(records)
-
 
 class FieldDialog(QDialog):
     def __init__(self, parent=None):
@@ -90,7 +113,7 @@ class FieldDialog(QDialog):
         form_layout.addRow("Имя поля:", self.name_input)
 
         self.type_combo = QComboBox(self)
-        self.type_combo.addItems(["INTEGER", "TEXT", "REAL", "CHAR"])
+        self.type_combo.addItems(["INTEGER", "TEXT", "REAL", "CHAR", "CHARINVL", "string(CHARINVL)"])
         form_layout.addRow("Тип данных:", self.type_combo)
 
         self.layout.addLayout(form_layout)
@@ -208,9 +231,8 @@ class MainWindow(QMainWindow):
 
                 dialog = RecordDialog(table_name, fields, records, self)
                 dialog.exec()  # Открыть диалог
-        except:
-            QMessageBox.information(self, ":c", "Щось пішло не так")
-
+        except Exception as e:
+            QMessageBox.information(self, ":c", f"Ошибка: {str(e)}")
 
     def add_table(self):
         """Добавить новую таблицу."""
