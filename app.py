@@ -59,6 +59,30 @@ def get_table_fields(table_name):
     else:
         return jsonify({"error": "Таблица не найдена"}), 404
 
+@app.route('/remove_duplicates/<table_name>', methods=['POST'])
+def remove_duplicates(table_name):
+    db = read_db()
+    if table_name not in db:
+        return jsonify({"error": "Table not found"}), 404
+
+    records = db[table_name]["records"]
+    unique_records = []
+    seen = set()
+
+    for record in records:
+        # Удаляем ID из записи для проверки уникальности
+        record_without_id = {k: v for k, v in record.items() if k != "id"}  # Предполагается, что "id" - это имя поля ID
+        record_tuple = tuple(record_without_id.items())  # Преобразуем в кортеж для хеширования
+
+        if record_tuple not in seen:
+            unique_records.append(record)
+            seen.add(record_tuple)
+
+    db[table_name]["records"] = unique_records
+    write_db(db)
+    
+    return jsonify({"success": "Дубликаты удалены", "removed_count": len(records) - len(unique_records)}), 200
+
 # add record to the table
 @app.route('/add_record/<table_name>', methods=['POST'])
 def add_record(table_name):

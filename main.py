@@ -27,10 +27,25 @@ class RecordDialog(QDialog):
         self.remove_record_button.clicked.connect(self.remove_record)
         self.layout.addWidget(self.remove_record_button)
 
+        # Кнопка для удаления дубликатов
+        self.remove_duplicates_button = QPushButton("Удалить дубликаты")
+        self.remove_duplicates_button.clicked.connect(self.remove_duplicates)
+        self.layout.addWidget(self.remove_duplicates_button)
+
         # Кнопка для обновления записей
         self.refresh_records_button = QPushButton("Обновить записи")
         self.refresh_records_button.clicked.connect(self.refresh_records)
         self.layout.addWidget(self.refresh_records_button)
+
+    def remove_duplicates(self):
+        """Удалить дубликаты из таблицы."""
+        table_name = self.parent().table_list.currentItem().text()
+        response = self.parent().client.remove_duplicates(table_name)
+        if response and "success" in response:
+            QMessageBox.information(self, "Успех", f"{response['removed_count']} дубликатов удалено.")
+            self.refresh_records()
+        else:
+            QMessageBox.warning(self, "Ошибка", "Не удалось удалить дубликаты.")
 
     def update_records(self, records):
         """Обновить список записей."""

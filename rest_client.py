@@ -33,3 +33,7 @@ class RestClient:
         """Удалить запись по ID."""
         response = requests.delete(f"{self.base_url}/delete_record/{table_name}/{record_id}")
         return response.json() if response.status_code == 200 else None
+
+    def remove_duplicates(self, table_name):
+        response = requests.post(f"{self.base_url}/remove_duplicates/{table_name}")
+        return response.json() if response.status_code == 200 else None

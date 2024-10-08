@@ -23,6 +23,22 @@
                 "string(CHARINVL)"
             ]
         ],
-        "records": []
+        "records": [
+            {
+                "id": 1,
+                "charinvl": "(1 - 5)",
+                "charinvls": "(1, 2, 3, 4, 5)"
+            },
+            {
+                "id": 2,
+                "charinvl": "(a - d)",
+                "charinvls": "(a, b, c, d)"
+            },
+            {
+                "id": 3,
+                "charinvl": "(1 - 5)",
+                "charinvls": "(1, 2, 3, 4, 5, 6)"
+            }
+        ]
     }
 }
