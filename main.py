@@ -10,7 +10,7 @@ import re
 class RecordDialog(QDialog):
     def __init__(self, table_name, fields, records, parent=None):
         super().__init__(parent)
-        self.setWindowTitle(f"Записи для {table_name}")
+        self.setWindowTitle(f"Records for {table_name}")
         self.layout = QVBoxLayout(self)
 
         self.records_list = QListWidget(self)
@@ -18,55 +18,52 @@ class RecordDialog(QDialog):
         self.update_records(records)
 
         # Кнопка для добавления записи
-        self.add_record_button = QPushButton("Добавить запись")
+        self.add_record_button = QPushButton("Add record")
         self.add_record_button.clicked.connect(lambda: self.add_record(fields))
         self.layout.addWidget(self.add_record_button)
 
         # Кнопка для удаления записи
-        self.remove_record_button = QPushButton("Удалить запись")
+        self.remove_record_button = QPushButton("Remove record")
         self.remove_record_button.clicked.connect(self.remove_record)
         self.layout.addWidget(self.remove_record_button)
 
         # Кнопка для удаления дубликатов
-        self.remove_duplicates_button = QPushButton("Удалить дубликаты")
+        self.remove_duplicates_button = QPushButton("Remove duplicates")
         self.remove_duplicates_button.clicked.connect(self.remove_duplicates)
         self.layout.addWidget(self.remove_duplicates_button)
 
         # Кнопка для обновления записей
-        self.refresh_records_button = QPushButton("Обновить записи")
+        self.refresh_records_button = QPushButton("Refresh")
         self.refresh_records_button.clicked.connect(self.refresh_records)
         self.layout.addWidget(self.refresh_records_button)
 
     def remove_duplicates(self):
-        """Удалить дубликаты из таблицы."""
         table_name = self.parent().table_list.currentItem().text()
         response = self.parent().client.remove_duplicates(table_name)
         if response and "success" in response:
-            QMessageBox.information(self, "Успех", f"{response['removed_count']} дубликатов удалено.")
+            QMessageBox.information(self, "Succsess", f"{response['removed_count']} duplicates was removed.")
             self.refresh_records()
         else:
-            QMessageBox.warning(self, "Ошибка", "Не удалось удалить дубликаты.")
+            QMessageBox.warning(self, "Error", "Cann't remove duplicates.")
 
     def update_records(self, records):
-        """Обновить список записей."""
         self.records_list.clear()
         for record in records:
             record_display = f"ID: {record['id']}, " + ", ".join(f"{key}: {value}" for key, value in record.items() if key != 'id')
             self.records_list.addItem(record_display)
 
     def add_record(self, fields):
-        """Добавить новую запись через диалог."""
         record_data = {}
         for field in fields:
             field_name, field_type = field[0], field[1]
 
             if field_type == "CHARINVL" or field_type == "string(CHARINVL)":
                 # Для этих типов данных отображаем два поля для ввода диапазона
-                start_value, ok1 = QInputDialog.getText(self, f"Введите начало диапазона для {field_name}:", field_name)
+                start_value, ok1 = QInputDialog.getText(self, f"Enter start of interval {field_name}:", field_name)
                 if not ok1:
                     return
 
-                end_value, ok2 = QInputDialog.getText(self, f"Введите конец диапазона для {field_name}:", field_name)
+                end_value, ok2 = QInputDialog.getText(self, f"Enter end of interval {field_name}:", field_name)
                 if not ok2:
                     return
 
@@ -77,7 +74,7 @@ class RecordDialog(QDialog):
                     # Формат для string(CHARINVL): (B, C, D)
                     record_data[field_name] = f"({', '.join(chr(c) for c in range(ord(start_value), ord(end_value) + 1))})"
             else:
-                value, ok = QInputDialog.getText(self, f"Введите значение для {field_name}:", field_name)
+                value, ok = QInputDialog.getText(self, f"Enter value for {field_name}:", field_name)
                 if ok:
                     record_data[field_name] = value
                 else:
@@ -90,7 +87,6 @@ class RecordDialog(QDialog):
         self.update_records(self.parent().client.get_records(self.parent().table_list.currentItem().text()))
 
     def remove_record(self):
-        """Удалить выбранную запись из списка."""
         selected_item = self.records_list.currentItem()
         if selected_item:
             record_text = selected_item.text()
@@ -105,10 +101,9 @@ class RecordDialog(QDialog):
                 self.parent().client.delete_record(self.parent().table_list.currentItem().text(), record_id)
                 self.update_records(self.parent().client.get_records(self.parent().table_list.currentItem().text()))  # Обновляем записи
             else:
-                QMessageBox.warning(self, "Ошибка", "Не удалось извлечь ID записи.")
+                QMessageBox.warning(self, "Error", "Cann't get ID's.")
 
     def refresh_records(self):
-        """Обновить записи с сервера."""
         table_name = self.parent().table_list.currentItem().text()
         records = self.parent().client.get_records(table_name)
         self.update_records(records)
@@ -116,30 +111,30 @@ class RecordDialog(QDialog):
 class FieldDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle("Добавить поле")
+        self.setWindowTitle("Add field")
         self.layout = QVBoxLayout(self)
 
         self.fields_list = QListWidget(self)
-        self.layout.addWidget(QLabel("Список полей:"))
+        self.layout.addWidget(QLabel("List of fields:"))
         self.layout.addWidget(self.fields_list)
 
         form_layout = QFormLayout()
         self.name_input = QLineEdit(self)
-        form_layout.addRow("Имя поля:", self.name_input)
+        form_layout.addRow("Field name:", self.name_input)
 
         self.type_combo = QComboBox(self)
         self.type_combo.addItems(["INTEGER", "TEXT", "REAL", "CHAR", "CHARINVL", "string(CHARINVL)"])
-        form_layout.addRow("Тип данных:", self.type_combo)
+        form_layout.addRow("Data type:", self.type_combo)
 
         self.layout.addLayout(form_layout)
 
         # Кнопки для добавления и удаления поля
         buttons_layout = QHBoxLayout()
-        self.add_field_button = QPushButton("Добавить поле")
+        self.add_field_button = QPushButton("Add field")
         self.add_field_button.clicked.connect(self.add_field)
         buttons_layout.addWidget(self.add_field_button)
 
-        self.remove_field_button = QPushButton("Удалить поле")
+        self.remove_field_button = QPushButton("Remove field")
         self.remove_field_button.clicked.connect(self.remove_field)
         buttons_layout.addWidget(self.remove_field_button)
 
@@ -149,7 +144,7 @@ class FieldDialog(QDialog):
         action_buttons_layout = QHBoxLayout()
         self.ok_button = QPushButton("OK", self)
         self.ok_button.clicked.connect(self.accept)
-        self.cancel_button = QPushButton("Отмена", self)
+        self.cancel_button = QPushButton("Cancel", self)
         self.cancel_button.clicked.connect(self.reject)
         action_buttons_layout.addWidget(self.ok_button)
         action_buttons_layout.addWidget(self.cancel_button)
@@ -158,7 +153,6 @@ class FieldDialog(QDialog):
         self.fields = []
 
     def add_field(self):
-        """Добавить поле в список."""
         field_name = self.name_input.text()
         field_type = self.type_combo.currentText()
 
@@ -171,7 +165,6 @@ class FieldDialog(QDialog):
             self.type_combo.setCurrentIndex(0)
 
     def remove_field(self):
-        """Удалить выбранное поле из списка."""
         selected_item = self.fields_list.currentItem()
         if selected_item:
             row = self.fields_list.row(selected_item)
@@ -193,7 +186,7 @@ class MainWindow(QMainWindow):
     def init_ui(self):
         # Виджет для отображения таблиц
         self.table_list = QListWidget()
-        self.layout.addWidget(QLabel("Таблицы:"))
+        self.layout.addWidget(QLabel("Tables:"))
         self.layout.addWidget(self.table_list)
         self.load_tables()
 
@@ -204,17 +197,17 @@ class MainWindow(QMainWindow):
         buttons_layout = QHBoxLayout()
         
         # Добавление таблицы
-        self.add_table_button = QPushButton("Добавить таблицу")
+        self.add_table_button = QPushButton("Add Table")
         self.add_table_button.clicked.connect(self.add_table)
         buttons_layout.addWidget(self.add_table_button)
 
         # Удаление таблицы
-        self.delete_table_button = QPushButton("Удалить таблицу")
+        self.delete_table_button = QPushButton("Remove Table")
         self.delete_table_button.clicked.connect(self.delete_table)
         buttons_layout.addWidget(self.delete_table_button)
 
         # Обновить список
-        self.refresh_button = QPushButton("Обновить")
+        self.refresh_button = QPushButton("Refresh")
         self.refresh_button.clicked.connect(self.load_tables)
         buttons_layout.addWidget(self.refresh_button)
 
@@ -226,17 +219,15 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(container)
 
     def load_tables(self):
-        """Загрузить список таблиц с сервера."""
         self.table_list.clear()
         tables = self.client.get_tables()
         if tables:
             for table in tables:
                 self.table_list.addItem(table)
         else:
-            self.table_list.addItem("Нет таблиц.")
+            self.table_list.addItem("Empty.")
 
     def add_record(self):
-        """Открыть диалог для отображения записей и управления ими."""
         selected_item = self.table_list.currentItem()
         try:
             if selected_item:
@@ -247,11 +238,10 @@ class MainWindow(QMainWindow):
                 dialog = RecordDialog(table_name, fields, records, self)
                 dialog.exec()  # Открыть диалог
         except Exception as e:
-            QMessageBox.information(self, ":c", f"Ошибка: {str(e)}")
+            QMessageBox.information(self, ":c", f"Error: {str(e)}")
 
     def add_table(self):
-        """Добавить новую таблицу."""
-        table_name, ok = QInputDialog.getText(self, "Добавить таблицу", "Введите имя таблицы:")
+        table_name, ok = QInputDialog.getText(self, "Add Table", "Enter the table name:")
         if ok and table_name:
             dialog = FieldDialog(self)
             if dialog.exec() == QDialog.DialogCode.Accepted:
@@ -260,22 +250,21 @@ class MainWindow(QMainWindow):
                 if fields:
                     response = self.client.create_table(table_name, fields)
                     if response:
-                        QMessageBox.information(self, "Успех", f"Таблица {table_name} создана.")
+                        QMessageBox.information(self, "Succsess", f"Table {table_name} is created.")
                     else:
-                        QMessageBox.warning(self, "Ошибка", "Не удалось создать таблицу.")
+                        QMessageBox.warning(self, "Error", "Cann't create table")
                     self.load_tables()
 
     def delete_table(self):
-        """Удалить выбранную таблицу."""
         selected_item = self.table_list.currentItem()
         if selected_item:
             table_name = selected_item.text()
-            if table_name != "Нет таблиц.":
+            if table_name != "Empty.":
                 response = self.client.delete_table(table_name)
                 if response:
-                    QMessageBox.information(self, "Успех", f"Таблица {table_name} удалена.")
+                    QMessageBox.information(self, "Succsess", f"Table {table_name} is created.")
                 else:
-                    QMessageBox.warning(self, "Ошибка", "Не удалось удалить таблицу.")
+                    QMessageBox.warning(self, "Error", "Cann't create table")
                 self.load_tables()
 
 if __name__ == "__main__":
